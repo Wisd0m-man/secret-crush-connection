@@ -15,19 +15,19 @@ const EmailVerification = ({ email, onVerificationComplete }: EmailVerificationP
   const { toast } = useToast();
 
   const generateOTP = () => {
-    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    setSentOtp(newOtp);
-    return newOtp;
+    return Math.floor(100000 + Math.random() * 900000).toString();
   };
 
   const handleSendOTP = async () => {
     const generatedOtp = generateOTP();
-    // TODO: Add Supabase email sending logic here
+    setSentOtp(generatedOtp);
+    
+    // TODO: Add actual email sending logic here
     console.log("Sending OTP:", generatedOtp, "to email:", email);
     
     toast({
       title: "OTP Sent!",
-      description: `Check your email (${email}) for the verification code`,
+      description: `Check your email (${email}) for the verification code: ${generatedOtp}`,
     });
     setIsVerifying(true);
   };
@@ -45,6 +45,7 @@ const EmailVerification = ({ email, onVerificationComplete }: EmailVerificationP
         description: "Please check the code and try again",
         variant: "destructive",
       });
+      setOtp("");
     }
   };
 
@@ -55,33 +56,35 @@ const EmailVerification = ({ email, onVerificationComplete }: EmailVerificationP
         onClick={handleSendOTP}
         className="w-full"
       >
-        Verify Email
+        Send Verification Code
       </Button>
     );
   }
 
   return (
     <div className="space-y-4">
-      <InputOTP
-        maxLength={6}
-        value={otp}
-        onChange={(value) => setOtp(value)}
-        placeholder="______"
-        render={({ slots }) => (
-          <InputOTPGroup>
-            {slots.map((slot, index) => (
-              <InputOTPSlot key={index} {...slot} index={index} />
-            ))}
-          </InputOTPGroup>
-        )}
-      />
-      <Button 
-        type="button" 
-        onClick={verifyOTP}
-        className="w-full"
-      >
-        Verify OTP
-      </Button>
+      <div className="flex flex-col items-center gap-4">
+        <InputOTP
+          maxLength={6}
+          value={otp}
+          onChange={(value) => setOtp(value)}
+          render={({ slots }) => (
+            <InputOTPGroup className="gap-2">
+              {slots.map((slot, index) => (
+                <InputOTPSlot key={index} {...slot} />
+              ))}
+            </InputOTPGroup>
+          )}
+        />
+        <Button 
+          type="button" 
+          onClick={verifyOTP}
+          className="w-full"
+          disabled={otp.length !== 6}
+        >
+          Verify Code
+        </Button>
+      </div>
     </div>
   );
 };
