@@ -2,20 +2,39 @@ import { useState } from "react";
 import { Heart, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+interface FormData {
+  name: string;
+  email: string;
+  usn: string;
+  crushName: string;
+  crushUsn: string;
+}
+
 const CrushForm = () => {
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
+    email: "",
     usn: "",
     crushName: "",
     crushUsn: "",
   });
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateUSN = (usn: string) => {
+    const usnRegex = /^4VP\d{4}0\d{2}$/;
+    return usnRegex.test(usn);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
-    if (!formData.name || !formData.usn || !formData.crushName || !formData.crushUsn) {
+    // Validation checks
+    if (!formData.name || !formData.email || !formData.usn || !formData.crushName || !formData.crushUsn) {
       toast({
         title: "Missing Information",
         description: "Please fill in all fields",
@@ -24,7 +43,34 @@ const CrushForm = () => {
       return;
     }
 
-    // TODO: Add actual submission logic when backend is ready
+    if (!validateEmail(formData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateUSN(formData.usn)) {
+      toast({
+        title: "Invalid USN",
+        description: "USN must be in format 4VPXXXX0XX",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateUSN(formData.crushUsn)) {
+      toast({
+        title: "Invalid Crush's USN",
+        description: "USN must be in format 4VPXXXX0XX",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // TODO: Add Supabase submission logic here
     toast({
       title: "Crush Submitted! 💘",
       description: "We'll let you know if it's a match!",
@@ -33,6 +79,7 @@ const CrushForm = () => {
     // Reset form
     setFormData({
       name: "",
+      email: "",
       usn: "",
       crushName: "",
       crushUsn: "",
@@ -55,6 +102,20 @@ const CrushForm = () => {
             placeholder="John Doe"
           />
         </div>
+
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            Your Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
+            placeholder="john@example.com"
+          />
+        </div>
         
         <div>
           <label htmlFor="usn" className="block text-sm font-medium text-gray-700 mb-1">
@@ -64,9 +125,9 @@ const CrushForm = () => {
             id="usn"
             type="text"
             value={formData.usn}
-            onChange={(e) => setFormData({ ...formData, usn: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, usn: e.target.value.toUpperCase() })}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
-            placeholder="1XX21XX000"
+            placeholder="4VPXXXX0XX"
           />
         </div>
 
@@ -92,9 +153,9 @@ const CrushForm = () => {
             id="crushUsn"
             type="text"
             value={formData.crushUsn}
-            onChange={(e) => setFormData({ ...formData, crushUsn: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, crushUsn: e.target.value.toUpperCase() })}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
-            placeholder="1XX21XX000"
+            placeholder="4VPXXXX0XX"
           />
         </div>
       </div>
