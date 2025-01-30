@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Heart, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import EmailVerification from "./EmailVerification";
 
 interface FormData {
   name: string;
@@ -12,6 +13,7 @@ interface FormData {
 
 const CrushForm = () => {
   const { toast } = useToast();
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -26,7 +28,8 @@ const CrushForm = () => {
   };
 
   const validateUSN = (usn: string) => {
-    const usnRegex = /^4VP\d{4}0\d{2}$/;
+    // This regex will match any USN that follows the pattern XVPXXXX0XX where X can be any digit
+    const usnRegex = /^\dVP\d{4}0\d{2}$/;
     return usnRegex.test(usn);
   };
 
@@ -55,7 +58,7 @@ const CrushForm = () => {
     if (!validateUSN(formData.usn)) {
       toast({
         title: "Invalid USN",
-        description: "USN must be in format 4VPXXXX0XX",
+        description: "USN must be in format XVP****0**",
         variant: "destructive",
       });
       return;
@@ -64,7 +67,16 @@ const CrushForm = () => {
     if (!validateUSN(formData.crushUsn)) {
       toast({
         title: "Invalid Crush's USN",
-        description: "USN must be in format 4VPXXXX0XX",
+        description: "USN must be in format XVP****0**",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isEmailVerified) {
+      toast({
+        title: "Email Not Verified",
+        description: "Please verify your email before submitting",
         variant: "destructive",
       });
       return;
@@ -84,6 +96,7 @@ const CrushForm = () => {
       crushName: "",
       crushUsn: "",
     });
+    setIsEmailVerified(false);
   };
 
   return (
@@ -103,7 +116,7 @@ const CrushForm = () => {
           />
         </div>
 
-        <div>
+        <div className="space-y-2">
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
             Your Email
           </label>
@@ -115,6 +128,12 @@ const CrushForm = () => {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
             placeholder="john@example.com"
           />
+          {validateEmail(formData.email) && !isEmailVerified && (
+            <EmailVerification 
+              email={formData.email} 
+              onVerificationComplete={() => setIsEmailVerified(true)} 
+            />
+          )}
         </div>
         
         <div>
@@ -127,7 +146,7 @@ const CrushForm = () => {
             value={formData.usn}
             onChange={(e) => setFormData({ ...formData, usn: e.target.value.toUpperCase() })}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
-            placeholder="4VPXXXX0XX"
+            placeholder="1VP****0**"
           />
         </div>
 
@@ -155,14 +174,15 @@ const CrushForm = () => {
             value={formData.crushUsn}
             onChange={(e) => setFormData({ ...formData, crushUsn: e.target.value.toUpperCase() })}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
-            placeholder="4VPXXXX0XX"
+            placeholder="1VP****0**"
           />
         </div>
       </div>
 
       <button
         type="submit"
-        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-love-500 text-white rounded-md hover:bg-love-600 transition-colors duration-200"
+        disabled={!isEmailVerified}
+        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-love-500 text-white rounded-md hover:bg-love-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Heart className="w-5 h-5" />
         <span>Submit Secret Crush</span>
