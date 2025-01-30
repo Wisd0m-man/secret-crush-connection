@@ -66,6 +66,7 @@ const EmailVerification = ({ email, onVerificationComplete }: EmailVerificationP
         maxLength={6}
         value={otp}
         onChange={(value) => setOtp(value)}
+        placeholder="______"
         render={({ slots }) => (
           <InputOTPGroup>
             {slots.map((slot, index) => (
