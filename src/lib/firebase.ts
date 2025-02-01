@@ -3,12 +3,13 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyB9KefXHDLX3shwazUaK28eP_kkjOKNOZI",
+  authDomain: "secret-crush-a5a16.firebaseapp.com",
+  projectId: "secret-crush-a5a16",
+  storageBucket: "secret-crush-a5a16.firebasestorage.app",
+  messagingSenderId: "739539931369",
+  appId: "1:739539931369:web:d7feb5237f102a6b0e6078",
+  measurementId: "G-DQRKSKZS4Y"
 };
 
 // Initialize Firebase
