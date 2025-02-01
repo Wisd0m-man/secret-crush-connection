@@ -1,14 +1,14 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBOnx3JQ9cH9GKwT_BK9YxQjbGBGnUq_Ow",
-  authDomain: "crush-matcher.firebaseapp.com",
-  projectId: "crush-matcher",
-  storageBucket: "crush-matcher.appspot.com",
-  messagingSenderId: "581111574556",
-  appId: "1:581111574556:web:9f9f9f9f9f9f9f9f9f9f9f",
-  measurementId: "G-MEASUREMENT_ID"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 // Initialize Firebase
