@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/auth";
+import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
@@ -7,7 +7,8 @@ const firebaseConfig = {
   projectId: "crush-matcher",
   storageBucket: "crush-matcher.appspot.com",
   messagingSenderId: "581111574556",
-  appId: "1:581111574556:web:9f9f9f9f9f9f9f9f9f9f9f"
+  appId: "1:581111574556:web:9f9f9f9f9f9f9f9f9f9f9f",
+  measurementId: "G-MEASUREMENT_ID"
 };
 
 // Initialize Firebase
