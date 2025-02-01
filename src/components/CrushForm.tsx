@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Heart, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import EmailVerification from "./EmailVerification";
+import GoogleAuth from "./GoogleAuth";
 
 interface FormData {
   name: string;
@@ -13,7 +13,7 @@ interface FormData {
 
 const CrushForm = () => {
   const { toast } = useToast();
-  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -22,13 +22,7 @@ const CrushForm = () => {
     crushUsn: "",
   });
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
   const validateUSN = (usn: string) => {
-    // This regex will match any USN that follows the pattern XVPXXXX0XX where X can be any digit
     const usnRegex = /^\dVP\d{4}0\d{2}$/;
     return usnRegex.test(usn);
   };
@@ -36,20 +30,10 @@ const CrushForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation checks
-    if (!formData.name || !formData.email || !formData.usn || !formData.crushName || !formData.crushUsn) {
+    if (!formData.name || !formData.usn || !formData.crushName || !formData.crushUsn) {
       toast({
         title: "Missing Information",
         description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!validateEmail(formData.email)) {
-      toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address",
         variant: "destructive",
       });
       return;
@@ -73,10 +57,10 @@ const CrushForm = () => {
       return;
     }
 
-    if (!isEmailVerified) {
+    if (!isAuthenticated) {
       toast({
-        title: "Email Not Verified",
-        description: "Please verify your email before submitting",
+        title: "Authentication Required",
+        description: "Please authenticate with Google before submitting",
         variant: "destructive",
       });
       return;
@@ -96,7 +80,6 @@ const CrushForm = () => {
       crushName: "",
       crushUsn: "",
     });
-    setIsEmailVerified(false);
   };
 
   return (
@@ -116,26 +99,6 @@ const CrushForm = () => {
           />
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Your Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
-            placeholder="john@example.com"
-          />
-          {validateEmail(formData.email) && !isEmailVerified && (
-            <EmailVerification 
-              email={formData.email} 
-              onVerificationComplete={() => setIsEmailVerified(true)} 
-            />
-          )}
-        </div>
-        
         <div>
           <label htmlFor="usn" className="block text-sm font-medium text-gray-700 mb-1">
             Your USN
@@ -177,17 +140,22 @@ const CrushForm = () => {
             placeholder="1VP****0**"
           />
         </div>
-      </div>
 
-      <button
-        type="submit"
-        disabled={!isEmailVerified}
-        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-love-500 text-white rounded-md hover:bg-love-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <Heart className="w-5 h-5" />
-        <span>Submit Secret Crush</span>
-        <Send className="w-5 h-5" />
-      </button>
+        {!isAuthenticated ? (
+          <div className="pt-4">
+            <GoogleAuth onAuthComplete={() => setIsAuthenticated(true)} />
+          </div>
+        ) : (
+          <button
+            type="submit"
+            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-love-500 text-white rounded-md hover:bg-love-600 transition-colors duration-200"
+          >
+            <Heart className="w-5 h-5" />
+            <span>Submit Secret Crush</span>
+            <Send className="w-5 h-5" />
+          </button>
+        )}
+      </div>
     </form>
   );
 };
