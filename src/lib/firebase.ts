@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyB9KefXHDLX3shwazUaK28eP_kkjOKNOZI",
   authDomain: "secret-crush-a5a16.firebaseapp.com",
@@ -19,7 +18,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Configure Google Auth Provider
+// Configure Google Auth Provider settings
 googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
