@@ -17,16 +17,18 @@ const GoogleAuth = ({ onAuthComplete }: GoogleAuthProps) => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       if (result.user) {
+        console.log("Successfully signed in:", result.user.email);
         toast({
           title: "Successfully authenticated! 🎉",
           description: `Welcome ${result.user.displayName}!`,
         });
         onAuthComplete();
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Google sign-in error:", error);
       toast({
         title: "Authentication failed",
-        description: "Could not sign in with Google",
+        description: error.message || "Could not sign in with Google",
         variant: "destructive",
       });
     } finally {
