@@ -15,7 +15,9 @@ const GoogleAuth = ({ onAuthComplete }: GoogleAuthProps) => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
+      // Try to sign in with popup
       const result = await signInWithPopup(auth, googleProvider);
+      
       if (result.user) {
         console.log("Successfully signed in:", result.user.email);
         toast({
@@ -26,9 +28,18 @@ const GoogleAuth = ({ onAuthComplete }: GoogleAuthProps) => {
       }
     } catch (error: any) {
       console.error("Google sign-in error:", error);
+      
+      // Show a more user-friendly error message
+      let errorMessage = "Could not sign in with Google";
+      if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Please allow popups for this website to sign in with Google";
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = "Sign-in was cancelled";
+      }
+      
       toast({
         title: "Authentication failed",
-        description: error.message || "Could not sign in with Google",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
