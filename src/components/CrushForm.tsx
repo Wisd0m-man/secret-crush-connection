@@ -32,7 +32,7 @@ const CrushForm = () => {
 
   const sendMatchEmail = async (person1: FormData, person2: FormData) => {
     try {
-      const { error } = await supabase.functions.invoke('send-match-email', {
+      const response = await supabase.functions.invoke('send-match-email', {
         body: {
           to_email1: person1.email,
           to_name1: person1.name,
@@ -42,8 +42,8 @@ const CrushForm = () => {
         }
       });
 
-      if (error) {
-        console.error('Error sending match email:', error);
+      if (response.error) {
+        console.error('Error sending match email:', response.error);
       }
     } catch (error) {
       console.error('Error sending match email:', error);
@@ -53,18 +53,15 @@ const CrushForm = () => {
 
   const checkForMatch = async (currentSubmission: FormData) => {
     try {
-      // Query for a matching crush (where someone has submitted current user as their crush)
       const { data: matchData, error } = await supabase
         .from('crushes')
         .select('*')
         .eq('usn', currentSubmission.crushUsn)
         .eq('crushUsn', currentSubmission.usn)
-        .single();
+        .maybeSingle();
       
       if (error) {
-        if (error.code !== 'PGRST116') { // No rows returned
-          console.error("Error checking for match:", error);
-        }
+        console.error("Error checking for match:", error);
         return;
       }
       
@@ -88,7 +85,7 @@ const CrushForm = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!formData.name || !formData.usn || !formData.crushName || !formData.crushUsn) {
