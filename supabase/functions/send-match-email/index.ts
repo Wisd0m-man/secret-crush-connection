@@ -23,7 +23,10 @@ serve(async (req) => {
   try {
     const { to_email1, to_name1, to_email2, to_name2, message } = await req.json() as EmailData;
 
-    const emailjsResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+    console.log("Sending match emails to:", { to_email1, to_name1, to_email2, to_name2 });
+
+    // Send email to first person
+    const email1Response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -33,18 +36,38 @@ serve(async (req) => {
         template_id: Deno.env.get('EMAILJS_TEMPLATE_ID'),
         user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
         template_params: {
-          to_email1,
-          to_name1,
-          to_email2,
-          to_name2,
+          to_email: to_email1,
+          to_name: to_name1,
+          match_name: to_name2,
           message,
         },
       }),
     });
 
-    if (!emailjsResponse.ok) {
-      throw new Error('Failed to send match notification email');
+    // Send email to second person
+    const email2Response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
+        template_id: Deno.env.get('EMAILJS_TEMPLATE_ID'),
+        user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
+        template_params: {
+          to_email: to_email2,
+          to_name: to_name2,
+          match_name: to_name1,
+          message,
+        },
+      }),
+    });
+
+    if (!email1Response.ok || !email2Response.ok) {
+      throw new Error('Failed to send one or both match notification emails');
     }
+
+    console.log("Successfully sent both match emails");
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -54,7 +77,7 @@ serve(async (req) => {
       },
     );
   } catch (error) {
-    console.error('Error sending match email:', error);
+    console.error('Error sending match emails:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

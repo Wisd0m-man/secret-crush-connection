@@ -14,6 +14,8 @@ interface FormData {
   crushUsn: string;
 }
 
+type CrushRow = Database['public']['Tables']['crushes']['Row'];
+
 const CrushForm = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -31,8 +33,9 @@ const CrushForm = () => {
     return usnRegex.test(usn);
   };
 
-  const sendMatchEmail = async (person1: FormData, person2: FormData) => {
+  const sendMatchEmail = async (person1: FormData, person2: CrushRow) => {
     try {
+      console.log("Sending match email to:", person1.email, "and", person2.email);
       const response = await supabase.functions.invoke('send-match-email', {
         body: {
           to_email1: person1.email,
@@ -45,6 +48,8 @@ const CrushForm = () => {
 
       if (response.error) {
         console.error('Error sending match email:', response.error);
+      } else {
+        console.log('Match email sent successfully');
       }
     } catch (error) {
       console.error('Error sending match email:', error);
@@ -59,27 +64,40 @@ const CrushForm = () => {
         .select()
         .eq('usn', currentSubmission.crushUsn)
         .eq('crushUsn', currentSubmission.usn)
-        .maybeSingle();
+        .single();
       
       if (error) {
-        console.error("Error checking for match:", error);
+        if (error.code !== 'PGRST116') { // Not found error code
+          console.error("Error checking for match:", error);
+        }
         return;
       }
       
       if (matchData) {
-        // We found a match!
-        await sendMatchEmail(currentSubmission, {
-          name: matchData.name,
-          email: matchData.email,
-          usn: matchData.usn,
-          crushName: matchData.crush_name,
-          crushUsn: matchData.crush_usn,
-        });
+        console.log("Match found!", { currentSubmission, matchData });
+        // We found a match! Send emails to both parties
+        await sendMatchEmail(currentSubmission, matchData);
 
         toast({
           title: "It's a Match! 💘",
           description: "You and your crush like each other! Check your email for more details!",
         });
+
+        // Update both records to 'matched' status
+        const updatePromises = [
+          supabase
+            .from('crushes')
+            .update({ status: 'matched' })
+            .eq('usn', currentSubmission.usn)
+            .eq('crushUsn', currentSubmission.crushUsn),
+          supabase
+            .from('crushes')
+            .update({ status: 'matched' })
+            .eq('usn', matchData.usn)
+            .eq('crushUsn', matchData.crushUsn)
+        ];
+
+        await Promise.all(updatePromises);
       }
     } catch (error) {
       console.error("Error checking for match:", error);
