@@ -15,7 +15,6 @@ const GoogleAuth = ({ onAuthComplete }: GoogleAuthProps) => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      // Try to sign in with popup
       const result = await signInWithPopup(auth, googleProvider);
       
       if (result.user) {
@@ -29,9 +28,10 @@ const GoogleAuth = ({ onAuthComplete }: GoogleAuthProps) => {
     } catch (error: any) {
       console.error("Google sign-in error:", error);
       
-      // Show a more user-friendly error message
       let errorMessage = "Could not sign in with Google";
-      if (error.code === 'auth/popup-blocked') {
+      if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = "This domain is not authorized for Google Sign-In. Please ensure you've added this domain to Firebase Console > Authentication > Settings > Authorized domains";
+      } else if (error.code === 'auth/popup-blocked') {
         errorMessage = "Please allow popups for this website to sign in with Google";
       } else if (error.code === 'auth/cancelled-popup-request') {
         errorMessage = "Sign-in was cancelled";
