@@ -1,9 +1,9 @@
+
 import { useState } from "react";
 import { Heart, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import GoogleAuth from "./GoogleAuth";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FormData {
   name: string;
@@ -32,28 +32,18 @@ const CrushForm = () => {
 
   const sendMatchEmail = async (person1: FormData, person2: FormData) => {
     try {
-      // Send email to both parties using your backend endpoint
-      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          service_id: 'your_service_id',
-          template_id: 'your_template_id',
-          user_id: 'your_user_id',
-          template_params: {
-            to_email1: person1.email,
-            to_name1: person1.name,
-            to_email2: person2.email,
-            to_name2: person2.name,
-            message: "Congratulations! You have a mutual crush match! 💘"
-          }
-        })
+      const { error } = await supabase.functions.invoke('send-match-email', {
+        body: {
+          to_email1: person1.email,
+          to_name1: person1.name,
+          to_email2: person2.email,
+          to_name2: person2.name,
+          message: "Congratulations! You have a mutual crush match! 💘"
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send match notification email');
+      if (error) {
+        console.error('Error sending match email:', error);
       }
     } catch (error) {
       console.error('Error sending match email:', error);
@@ -64,20 +54,29 @@ const CrushForm = () => {
   const checkForMatch = async (currentSubmission: FormData) => {
     try {
       // Query for a matching crush (where someone has submitted current user as their crush)
-      const matchQuery = query(
-        collection(db, "crushes"),
-        where("usn", "==", currentSubmission.crushUsn),
-        where("crushUsn", "==", currentSubmission.usn)
-      );
-
-      const matchSnapshot = await getDocs(matchQuery);
+      const { data: matchData, error } = await supabase
+        .from('crushes')
+        .select('*')
+        .eq('usn', currentSubmission.crushUsn)
+        .eq('crushUsn', currentSubmission.usn)
+        .single();
       
-      if (!matchSnapshot.empty) {
+      if (error) {
+        if (error.code !== 'PGRST116') { // No rows returned
+          console.error("Error checking for match:", error);
+        }
+        return;
+      }
+      
+      if (matchData) {
         // We found a match!
-        const matchData = matchSnapshot.docs[0].data() as FormData;
-        
-        // Send emails to both parties
-        await sendMatchEmail(currentSubmission, matchData);
+        await sendMatchEmail(currentSubmission, {
+          name: matchData.name,
+          email: matchData.email,
+          usn: matchData.usn,
+          crushName: matchData.crush_name,
+          crushUsn: matchData.crush_usn,
+        });
 
         toast({
           title: "It's a Match! 💘",
@@ -129,31 +128,39 @@ const CrushForm = () => {
     }
 
     try {
-      // Add data to Firestore
-      const docRef = await addDoc(collection(db, "crushes"), {
-        ...formData,
-        createdAt: new Date(),
-        status: "pending"
-      });
-
-      if (docRef.id) {
-        // Check for any matching crushes
-        await checkForMatch(formData);
-
-        toast({
-          title: "Crush Submitted! 💘",
-          description: "We'll let you know if it's a match!",
+      // Add data to Supabase
+      const { error: insertError } = await supabase
+        .from('crushes')
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          usn: formData.usn,
+          crush_name: formData.crushName,
+          crush_usn: formData.crushUsn,
+          created_at: new Date().toISOString(),
+          status: "pending"
         });
-        
-        // Reset form
-        setFormData({
-          name: "",
-          email: "",
-          usn: "",
-          crushName: "",
-          crushUsn: "",
-        });
+
+      if (insertError) {
+        throw insertError;
       }
+
+      // Check for any matching crushes
+      await checkForMatch(formData);
+
+      toast({
+        title: "Crush Submitted! 💘",
+        description: "We'll let you know if it's a match!",
+      });
+      
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        usn: "",
+        crushName: "",
+        crushUsn: "",
+      });
     } catch (error) {
       console.error("Error submitting crush:", error);
       toast({
@@ -191,7 +198,7 @@ const CrushForm = () => {
             value={formData.usn}
             onChange={(e) => setFormData({ ...formData, usn: e.target.value.toUpperCase() })}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
-            placeholder="1VP****0**"
+            placeholder="4VPXXYYZZZ"
           />
         </div>
 
@@ -219,7 +226,7 @@ const CrushForm = () => {
             value={formData.crushUsn}
             onChange={(e) => setFormData({ ...formData, crushUsn: e.target.value.toUpperCase() })}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
-            placeholder="1VP****0**"
+            placeholder="4VPXXYYZZZ"
           />
         </div>
 
