@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Heart, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import GoogleAuth from "./GoogleAuth";
+import { db } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 interface FormData {
   name: string;
@@ -23,11 +25,12 @@ const CrushForm = () => {
   });
 
   const validateUSN = (usn: string) => {
-    const usnRegex = /^\dVP\d{4}0\d{2}$/;
+    // Format: 4VP + 2 digits + 2 letters + 3 digits
+    const usnRegex = /^4VP\d{2}[A-Z]{2}\d{3}$/;
     return usnRegex.test(usn);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.usn || !formData.crushName || !formData.crushUsn) {
@@ -42,7 +45,7 @@ const CrushForm = () => {
     if (!validateUSN(formData.usn)) {
       toast({
         title: "Invalid USN",
-        description: "USN must be in format XVP****0**",
+        description: "USN must be in format 4VPXXYYZZZ (XX=2 digits, YY=2 letters, ZZZ=3 digits)",
         variant: "destructive",
       });
       return;
@@ -51,7 +54,7 @@ const CrushForm = () => {
     if (!validateUSN(formData.crushUsn)) {
       toast({
         title: "Invalid Crush's USN",
-        description: "USN must be in format XVP****0**",
+        description: "USN must be in format 4VPXXYYZZZ (XX=2 digits, YY=2 letters, ZZZ=3 digits)",
         variant: "destructive",
       });
       return;
@@ -66,20 +69,35 @@ const CrushForm = () => {
       return;
     }
 
-    // TODO: Add Supabase submission logic here
-    toast({
-      title: "Crush Submitted! 💘",
-      description: "We'll let you know if it's a match!",
-    });
-    
-    // Reset form
-    setFormData({
-      name: "",
-      email: "",
-      usn: "",
-      crushName: "",
-      crushUsn: "",
-    });
+    try {
+      // Add data to Firestore
+      await addDoc(collection(db, "crushes"), {
+        ...formData,
+        createdAt: new Date(),
+        status: "pending" // Can be used later for matching logic
+      });
+
+      toast({
+        title: "Crush Submitted! 💘",
+        description: "We'll let you know if it's a match!",
+      });
+      
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        usn: "",
+        crushName: "",
+        crushUsn: "",
+      });
+    } catch (error) {
+      console.error("Error submitting crush:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit your crush. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
