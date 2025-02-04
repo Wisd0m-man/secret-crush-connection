@@ -4,6 +4,7 @@ import { Heart, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import GoogleAuth from "./GoogleAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 
 interface FormData {
   name: string;
@@ -55,7 +56,7 @@ const CrushForm = () => {
     try {
       const { data: matchData, error } = await supabase
         .from('crushes')
-        .select('*')
+        .select()
         .eq('usn', currentSubmission.crushUsn)
         .eq('crushUsn', currentSubmission.usn)
         .maybeSingle();
