@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Heart, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -28,9 +27,13 @@ const CrushForm = () => {
   });
 
   const validateUSN = (usn: string) => {
-    // Format: 4VP + 2 digits + 2 letters + 3 digits
     const usnRegex = /^4VP\d{2}[A-Z]{2}\d{3}$/;
     return usnRegex.test(usn);
+  };
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const sendMatchEmail = async (person1: FormData, person2: CrushRow) => {
@@ -48,12 +51,12 @@ const CrushForm = () => {
 
       if (response.error) {
         console.error('Error sending match email:', response.error);
-      } else {
-        console.log('Match email sent successfully');
+        throw new Error(response.error.message);
       }
+      console.log('Match email sent successfully');
     } catch (error) {
       console.error('Error sending match email:', error);
-      // Don't show error to users as the match was still successful
+      throw error;
     }
   };
 
@@ -63,7 +66,7 @@ const CrushForm = () => {
         .from('crushes')
         .select()
         .eq('usn', currentSubmission.crushUsn)
-        .eq('crushUsn', currentSubmission.usn)
+        .eq('crush_usn', currentSubmission.usn)
         .single();
       
       if (error) {
@@ -75,29 +78,36 @@ const CrushForm = () => {
       
       if (matchData) {
         console.log("Match found!", { currentSubmission, matchData });
-        // We found a match! Send emails to both parties
-        await sendMatchEmail(currentSubmission, matchData);
+        
+        try {
+          await sendMatchEmail(currentSubmission, matchData);
+          
+          // Update both records to 'matched' status
+          await Promise.all([
+            supabase
+              .from('crushes')
+              .update({ status: 'matched' })
+              .eq('usn', currentSubmission.usn)
+              .eq('crush_usn', currentSubmission.crushUsn),
+            supabase
+              .from('crushes')
+              .update({ status: 'matched' })
+              .eq('usn', matchData.usn)
+              .eq('crush_usn', matchData.crush_usn)
+          ]);
 
-        toast({
-          title: "It's a Match! 💘",
-          description: "You and your crush like each other! Check your email for more details!",
-        });
-
-        // Update both records to 'matched' status
-        const updatePromises = [
-          supabase
-            .from('crushes')
-            .update({ status: 'matched' })
-            .eq('usn', currentSubmission.usn)
-            .eq('crushUsn', currentSubmission.crushUsn),
-          supabase
-            .from('crushes')
-            .update({ status: 'matched' })
-            .eq('usn', matchData.usn)
-            .eq('crushUsn', matchData.crushUsn)
-        ];
-
-        await Promise.all(updatePromises);
+          toast({
+            title: "It's a Match! 💘",
+            description: "You and your crush like each other! Check your email for more details!",
+          });
+        } catch (error) {
+          console.error("Error processing match:", error);
+          toast({
+            title: "Match Found!",
+            description: "A match was found but we couldn't send the email notification. Please try again later.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error("Error checking for match:", error);
@@ -107,10 +117,19 @@ const CrushForm = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.usn || !formData.crushName || !formData.crushUsn) {
+    if (!formData.name || !formData.email || !formData.usn || !formData.crushName || !formData.crushUsn) {
       toast({
         title: "Missing Information",
         description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateEmail(formData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
         variant: "destructive",
       });
       return;
@@ -144,7 +163,6 @@ const CrushForm = () => {
     }
 
     try {
-      // Add data to Supabase
       const { error: insertError } = await supabase
         .from('crushes')
         .insert({
@@ -161,7 +179,6 @@ const CrushForm = () => {
         throw insertError;
       }
 
-      // Check for any matching crushes
       await checkForMatch(formData);
 
       toast({
@@ -169,7 +186,6 @@ const CrushForm = () => {
         description: "We'll let you know if it's a match!",
       });
       
-      // Reset form
       setFormData({
         name: "",
         email: "",
@@ -201,6 +217,20 @@ const CrushForm = () => {
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
             placeholder="John Doe"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            Your Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
+            placeholder="john@example.com"
           />
         </div>
 
