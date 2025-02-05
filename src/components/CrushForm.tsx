@@ -18,6 +18,7 @@ type CrushRow = Database['public']['Tables']['crushes']['Row'];
 const CrushForm = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -38,7 +39,7 @@ const CrushForm = () => {
 
   const sendMatchEmail = async (person1: FormData, person2: CrushRow) => {
     try {
-      console.log("Sending match email to:", person1.email, "and", person2.email);
+      console.log("Attempting to send match email to:", person1.email, "and", person2.email);
       const response = await supabase.functions.invoke('send-match-email', {
         body: {
           to_email1: person1.email,
@@ -53,26 +54,29 @@ const CrushForm = () => {
         console.error('Error sending match email:', response.error);
         throw new Error(response.error.message);
       }
-      console.log('Match email sent successfully');
+      console.log('Match email sent successfully:', response);
     } catch (error) {
-      console.error('Error sending match email:', error);
+      console.error('Error in sendMatchEmail:', error);
       throw error;
     }
   };
 
   const checkForMatch = async (currentSubmission: FormData) => {
     try {
+      console.log("Checking for match with:", currentSubmission);
       const { data: matchData, error } = await supabase
         .from('crushes')
-        .select()
+        .select('*')
         .eq('usn', currentSubmission.crushUsn)
         .eq('crush_usn', currentSubmission.usn)
         .single();
       
       if (error) {
-        if (error.code !== 'PGRST116') { // Not found error code
-          console.error("Error checking for match:", error);
+        if (error.code === 'PGRST116') {
+          console.log("No match found");
+          return;
         }
+        console.error("Error checking for match:", error);
         return;
       }
       
@@ -87,13 +91,11 @@ const CrushForm = () => {
             supabase
               .from('crushes')
               .update({ status: 'matched' })
-              .eq('usn', currentSubmission.usn)
-              .eq('crush_usn', currentSubmission.crushUsn),
+              .eq('usn', currentSubmission.usn),
             supabase
               .from('crushes')
               .update({ status: 'matched' })
               .eq('usn', matchData.usn)
-              .eq('crush_usn', matchData.crush_usn)
           ]);
 
           toast({
@@ -104,19 +106,28 @@ const CrushForm = () => {
           console.error("Error processing match:", error);
           toast({
             title: "Match Found!",
-            description: "A match was found but we couldn't send the email notification. Please try again later.",
+            description: "A match was found but we couldn't send the notification. Please try again later.",
             variant: "destructive",
           });
         }
       }
     } catch (error) {
-      console.error("Error checking for match:", error);
+      console.error("Error in checkForMatch:", error);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please authenticate with Google before submitting",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!formData.name || !formData.email || !formData.usn || !formData.crushName || !formData.crushUsn) {
       toast({
         title: "Missing Information",
@@ -135,32 +146,16 @@ const CrushForm = () => {
       return;
     }
 
-    if (!validateUSN(formData.usn)) {
+    if (!validateUSN(formData.usn) || !validateUSN(formData.crushUsn)) {
       toast({
         title: "Invalid USN",
-        description: "USN must be in format 4VPXXYYZZZ (XX=2 digits, YY=2 letters, ZZZ=3 digits)",
+        description: "USN must be in format 4VPXXYYZZZ",
         variant: "destructive",
       });
       return;
     }
 
-    if (!validateUSN(formData.crushUsn)) {
-      toast({
-        title: "Invalid Crush's USN",
-        description: "USN must be in format 4VPXXYYZZZ (XX=2 digits, YY=2 letters, ZZZ=3 digits)",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please authenticate with Google before submitting",
-        variant: "destructive",
-      });
-      return;
-    }
+    setIsSubmitting(true);
 
     try {
       const { error: insertError } = await supabase
@@ -176,7 +171,13 @@ const CrushForm = () => {
         });
 
       if (insertError) {
-        throw insertError;
+        console.error("Error inserting crush:", insertError);
+        toast({
+          title: "Error",
+          description: "Failed to submit your crush. Please try again.",
+          variant: "destructive",
+        });
+        return;
       }
 
       await checkForMatch(formData);
@@ -200,6 +201,8 @@ const CrushForm = () => {
         description: "Failed to submit your crush. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
