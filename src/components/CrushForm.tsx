@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Heart, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +15,8 @@ interface FormData {
 }
 
 type CrushRow = Database['public']['Tables']['crushes']['Row'];
+type CrushInsert = Database['public']['Tables']['crushes']['Insert'];
+type CrushUpdate = Database['public']['Tables']['crushes']['Update'];
 
 const CrushForm = () => {
   const { toast } = useToast();
@@ -46,7 +49,10 @@ const CrushForm = () => {
           to_name1: person1.name,
           to_email2: person2.email,
           to_name2: person2.name,
-          message: "Congratulations! You have a mutual crush match! 💘"
+          message: "Congratulations! You have a mutual crush match! 💘",
+          service_id: "service_9yx3m4v",
+          template_id: "template_0mt2u5a",
+          public_key: "RuLQCc8bDcS8aa_Ig"
         }
       });
 
@@ -64,19 +70,19 @@ const CrushForm = () => {
   const checkForMatch = async (currentSubmission: FormData) => {
     try {
       console.log("Checking for match with:", currentSubmission);
-      const { data: matchData, error } = await supabase
+      const { data: matchData, error: matchError } = await supabase
         .from('crushes')
         .select('*')
         .eq('usn', currentSubmission.crushUsn)
         .eq('crush_usn', currentSubmission.usn)
         .single();
       
-      if (error) {
-        if (error.code === 'PGRST116') {
+      if (matchError) {
+        if (matchError.code === 'PGRST116') {
           console.log("No match found");
           return;
         }
-        console.error("Error checking for match:", error);
+        console.error("Error checking for match:", matchError);
         return;
       }
       
@@ -87,16 +93,18 @@ const CrushForm = () => {
           await sendMatchEmail(currentSubmission, matchData);
           
           // Update both records to 'matched' status
-          await Promise.all([
+          const updatePromises = [
             supabase
               .from('crushes')
-              .update({ status: 'matched' })
+              .update({ status: 'matched' } as CrushUpdate)
               .eq('usn', currentSubmission.usn),
             supabase
               .from('crushes')
-              .update({ status: 'matched' })
+              .update({ status: 'matched' } as CrushUpdate)
               .eq('usn', matchData.usn)
-          ]);
+          ];
+
+          await Promise.all(updatePromises);
 
           toast({
             title: "It's a Match! 💘",
@@ -158,17 +166,19 @@ const CrushForm = () => {
     setIsSubmitting(true);
 
     try {
+      const crushData: CrushInsert = {
+        name: formData.name,
+        email: formData.email,
+        usn: formData.usn,
+        crush_name: formData.crushName,
+        crush_usn: formData.crushUsn,
+        created_at: new Date().toISOString(),
+        status: "pending"
+      };
+
       const { error: insertError } = await supabase
         .from('crushes')
-        .insert({
-          name: formData.name,
-          email: formData.email,
-          usn: formData.usn,
-          crush_name: formData.crushName,
-          crush_usn: formData.crushUsn,
-          created_at: new Date().toISOString(),
-          status: "pending"
-        });
+        .insert(crushData);
 
       if (insertError) {
         console.error("Error inserting crush:", insertError);
