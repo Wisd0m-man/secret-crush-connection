@@ -1,9 +1,15 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// EmailJS configuration
+const EMAILJS_SERVICE_ID = "service_9yx3m4v";
+const EMAILJS_TEMPLATE_ID = "template_0mt2u5a";
+const EMAILJS_PUBLIC_KEY = "RuLQCc8bDcS8aa_Ig";
 
 interface EmailData {
   to_email1: string;
@@ -30,13 +36,13 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
-        template_id: Deno.env.get('EMAILJS_TEMPLATE_ID'),
-        user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
+        service_id: EMAILJS_SERVICE_ID,
+        template_id: EMAILJS_TEMPLATE_ID,
+        user_id: EMAILJS_PUBLIC_KEY,
         template_params: {
-          to_email: to_email1,
           to_name: to_name1,
-          match_name: to_name2,
+          to_name2: to_name2,
+          to_email: to_email1,
           message,
         },
       }),
@@ -49,19 +55,21 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
-        template_id: Deno.env.get('EMAILJS_TEMPLATE_ID'),
-        user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
+        service_id: EMAILJS_SERVICE_ID,
+        template_id: EMAILJS_TEMPLATE_ID,
+        user_id: EMAILJS_PUBLIC_KEY,
         template_params: {
-          to_email: to_email2,
           to_name: to_name2,
-          match_name: to_name1,
+          to_name2: to_name1,
+          to_email: to_email2,
           message,
         },
       }),
     });
 
     if (!email1Response.ok || !email2Response.ok) {
+      console.error('Email 1 response:', await email1Response.text());
+      console.error('Email 2 response:', await email2Response.text());
       throw new Error('Failed to send one or both match notification emails');
     }
 
