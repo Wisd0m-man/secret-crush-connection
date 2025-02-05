@@ -70,23 +70,24 @@ const CrushForm = () => {
   const checkForMatch = async (currentSubmission: FormData) => {
     try {
       console.log("Checking for match with:", currentSubmission);
-      const { data: matchData, error: matchError } = await supabase
+      
+      // First, check if there's any existing crush where someone has crushed on the current user
+      const { data: matches, error: matchError } = await supabase
         .from('crushes')
         .select('*')
-        .eq('usn', currentSubmission.crushUsn)
         .eq('crush_usn', currentSubmission.usn)
-        .single();
+        .eq('usn', currentSubmission.crushUsn)
+        .eq('status', 'pending');
       
       if (matchError) {
-        if (matchError.code === 'PGRST116') {
-          console.log("No match found");
-          return;
-        }
         console.error("Error checking for match:", matchError);
         return;
       }
       
-      if (matchData) {
+      console.log("Potential matches found:", matches);
+      
+      if (matches && matches.length > 0) {
+        const matchData = matches[0];
         console.log("Match found!", { currentSubmission, matchData });
         
         try {
@@ -118,6 +119,8 @@ const CrushForm = () => {
             variant: "destructive",
           });
         }
+      } else {
+        console.log("No match found yet");
       }
     } catch (error) {
       console.error("Error in checkForMatch:", error);
