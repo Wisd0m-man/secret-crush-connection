@@ -27,7 +27,11 @@ serve(async (req) => {
   try {
     const { to_email1, to_name1, to_email2, to_name2, message } = await req.json() as EmailData;
 
-    console.log("Sending match emails to:", { to_email1, to_name1, to_email2, to_name2 });
+    console.log("Received email request:", { to_email1, to_name1, to_email2, to_name2 });
+
+    if (!to_email1 || !to_name1 || !to_email2 || !to_name2) {
+      throw new Error('Missing required email data');
+    }
 
     // Send email to first person
     const email1Response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
@@ -48,6 +52,8 @@ serve(async (req) => {
       }),
     });
 
+    console.log("Email 1 response status:", email1Response.status);
+
     // Send email to second person
     const email2Response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST',
@@ -67,9 +73,12 @@ serve(async (req) => {
       }),
     });
 
+    console.log("Email 2 response status:", email2Response.status);
+
     if (!email1Response.ok || !email2Response.ok) {
-      console.error('Email 1 response:', await email1Response.text());
-      console.error('Email 2 response:', await email2Response.text());
+      const email1Text = await email1Response.text();
+      const email2Text = await email2Response.text();
+      console.error('Email responses:', { email1: email1Text, email2: email2Text });
       throw new Error('Failed to send one or both match notification emails');
     }
 

@@ -1,131 +1,25 @@
-
 import { useState } from "react";
 import { Heart, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import GoogleAuth from "./GoogleAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
+import { validateEmail, validateUSN } from "@/utils/validationUtils";
+import { checkForMatch, sendMatchEmail, updateMatchStatus, type MatchFormData } from "@/utils/matchUtils";
 
-interface FormData {
-  name: string;
-  email: string;
-  usn: string;
-  crushName: string;
-  crushUsn: string;
-}
-
-type CrushRow = Database['public']['Tables']['crushes']['Row'];
 type CrushInsert = Database['public']['Tables']['crushes']['Insert'];
-type CrushUpdate = Database['public']['Tables']['crushes']['Update'];
 
 const CrushForm = () => {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<MatchFormData>({
     name: "",
     email: "",
     usn: "",
     crushName: "",
     crushUsn: "",
   });
-
-  const validateUSN = (usn: string) => {
-    const usnRegex = /^4VP\d{2}[A-Z]{2}\d{3}$/;
-    return usnRegex.test(usn);
-  };
-
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const sendMatchEmail = async (person1: FormData, person2: CrushRow) => {
-    try {
-      console.log("Attempting to send match email to:", person1.email, "and", person2.email);
-      const response = await supabase.functions.invoke('send-match-email', {
-        body: {
-          to_email1: person1.email,
-          to_name1: person1.name,
-          to_email2: person2.email,
-          to_name2: person2.name,
-          message: "Congratulations! You have a mutual crush match! 💘",
-          service_id: "service_9yx3m4v",
-          template_id: "template_0mt2u5a",
-          public_key: "RuLQCc8bDcS8aa_Ig"
-        }
-      });
-
-      if (response.error) {
-        console.error('Error sending match email:', response.error);
-        throw new Error(response.error.message);
-      }
-      console.log('Match email sent successfully:', response);
-    } catch (error) {
-      console.error('Error in sendMatchEmail:', error);
-      throw error;
-    }
-  };
-
-  const checkForMatch = async (currentSubmission: FormData) => {
-    try {
-      console.log("Checking for match with:", currentSubmission);
-      
-      // First, check if there's any existing crush where someone has crushed on the current user
-      const { data: matches, error: matchError } = await supabase
-        .from('crushes')
-        .select('*')
-        .eq('crush_usn', currentSubmission.usn)
-        .eq('usn', currentSubmission.crushUsn)
-        .eq('status', 'pending');
-      
-      if (matchError) {
-        console.error("Error checking for match:", matchError);
-        return;
-      }
-      
-      console.log("Potential matches found:", matches);
-      
-      if (matches && matches.length > 0) {
-        const matchData = matches[0];
-        console.log("Match found!", { currentSubmission, matchData });
-        
-        try {
-          await sendMatchEmail(currentSubmission, matchData);
-          
-          // Update both records to 'matched' status
-          const updatePromises = [
-            supabase
-              .from('crushes')
-              .update({ status: 'matched' } as CrushUpdate)
-              .eq('usn', currentSubmission.usn),
-            supabase
-              .from('crushes')
-              .update({ status: 'matched' } as CrushUpdate)
-              .eq('usn', matchData.usn)
-          ];
-
-          await Promise.all(updatePromises);
-
-          toast({
-            title: "It's a Match! 💘",
-            description: "You and your crush like each other! Check your email for more details!",
-          });
-        } catch (error) {
-          console.error("Error processing match:", error);
-          toast({
-            title: "Match Found!",
-            description: "A match was found but we couldn't send the notification. Please try again later.",
-            variant: "destructive",
-          });
-        }
-      } else {
-        console.log("No match found yet");
-      }
-    } catch (error) {
-      console.error("Error in checkForMatch:", error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -193,12 +87,32 @@ const CrushForm = () => {
         return;
       }
 
-      await checkForMatch(formData);
-
-      toast({
-        title: "Crush Submitted! 💘",
-        description: "We'll let you know if it's a match!",
-      });
+      // Check for match after successful insertion
+      const matchData = await checkForMatch(formData);
+      
+      if (matchData) {
+        try {
+          await sendMatchEmail(formData, matchData);
+          await updateMatchStatus(formData.usn, formData.crushUsn);
+          
+          toast({
+            title: "It's a Match! 💘",
+            description: "You and your crush like each other! Check your email for more details!",
+          });
+        } catch (error) {
+          console.error("Error processing match:", error);
+          toast({
+            title: "Match Found!",
+            description: "A match was found but we couldn't send the notification. Please try again later.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Crush Submitted! 💘",
+          description: "We'll let you know if it's a match!",
+        });
+      }
       
       setFormData({
         name: "",
