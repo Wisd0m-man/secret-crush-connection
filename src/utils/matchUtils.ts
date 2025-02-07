@@ -54,7 +54,8 @@ export const updateMatchStatus = async (usn1: string, usn2: string) => {
         .eq('crush_usn', usn1)
     ];
 
-    await Promise.all(updates);
+    const results = await Promise.all(updates);
+    console.log('Match status update results:', results);
     return true;
   } catch (error) {
     console.error('Error updating match status:', error);
@@ -66,26 +67,28 @@ export const checkForMatch = async (currentSubmission: MatchFormData) => {
   try {
     console.log("Checking for match with:", currentSubmission);
     
-    // Check for existing mutual crush
-    const { data: matches, error: matchError } = await supabase
+    // First, check if there's a matching crush entry
+    const { data: matchData, error: matchError } = await supabase
       .from('crushes')
       .select('*')
       .eq('usn', currentSubmission.crushUsn)
       .eq('crush_usn', currentSubmission.usn)
       .eq('status', 'pending')
-      .single();
-    
+      .limit(1)
+      .maybeSingle();
+
     if (matchError) {
-      if (matchError.code === 'PGRST116') {
-        console.log("No match found yet");
-        return null;
-      }
       console.error("Error checking for match:", matchError);
       throw matchError;
     }
-    
-    console.log("Match found!", { currentSubmission, matches });
-    return matches;
+
+    if (!matchData) {
+      console.log("No match found yet");
+      return null;
+    }
+
+    console.log("Match found!", { currentSubmission, matchData });
+    return matchData;
   } catch (error) {
     console.error("Error in checkForMatch:", error);
     throw error;
