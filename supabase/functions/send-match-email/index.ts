@@ -10,6 +10,7 @@ const corsHeaders = {
 const EMAILJS_SERVICE_ID = "service_9yx3m4v";
 const EMAILJS_TEMPLATE_ID = "template_0mt2u5a";
 const EMAILJS_PUBLIC_KEY = "RuLQCc8bDcS8aa_Ig";
+const EMAILJS_API_URL = "https://api.emailjs.com/api/v1.0/email/send";
 
 interface EmailData {
   to_email1: string;
@@ -17,6 +18,24 @@ interface EmailData {
   to_email2: string;
   to_name2: string;
   message: string;
+}
+
+async function sendEmailJS(payload: any) {
+  const response = await fetch(EMAILJS_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'origin': 'http://localhost',  // Add origin header
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`EmailJS API Error (${response.status}): ${errorText}`);
+  }
+
+  return response;
 }
 
 serve(async (req) => {
@@ -40,6 +59,7 @@ serve(async (req) => {
       service_id: EMAILJS_SERVICE_ID,
       template_id: EMAILJS_TEMPLATE_ID,
       user_id: EMAILJS_PUBLIC_KEY,
+      accessToken: EMAILJS_PUBLIC_KEY, // Add access token
       template_params: {
         to_name: to_name1,
         to_name2: to_name2,
@@ -53,6 +73,7 @@ serve(async (req) => {
       service_id: EMAILJS_SERVICE_ID,
       template_id: EMAILJS_TEMPLATE_ID,
       user_id: EMAILJS_PUBLIC_KEY,
+      accessToken: EMAILJS_PUBLIC_KEY, // Add access token
       template_params: {
         to_name: to_name2,
         to_name2: to_name1,
@@ -61,41 +82,19 @@ serve(async (req) => {
       },
     };
 
-    console.log("Sending first email with payload:", emailPayload1);
-    // Send email to first person
-    const email1Response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailPayload1),
-    });
+    try {
+      console.log("Sending first email with payload:", emailPayload1);
+      await sendEmailJS(emailPayload1);
+      console.log("First email sent successfully");
 
-    console.log("First email response status:", email1Response.status);
-    if (!email1Response.ok) {
-      const errorText = await email1Response.text();
-      console.error('First email error:', errorText);
-      throw new Error(`Failed to send first email: ${errorText}`);
+      console.log("Sending second email with payload:", emailPayload2);
+      await sendEmailJS(emailPayload2);
+      console.log("Second email sent successfully");
+
+    } catch (emailError) {
+      console.error('Failed to send emails:', emailError);
+      throw new Error(`Email sending failed: ${emailError.message}`);
     }
-
-    console.log("Sending second email with payload:", emailPayload2);
-    // Send email to second person
-    const email2Response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailPayload2),
-    });
-
-    console.log("Second email response status:", email2Response.status);
-    if (!email2Response.ok) {
-      const errorText = await email2Response.text();
-      console.error('Second email error:', errorText);
-      throw new Error(`Failed to send second email: ${errorText}`);
-    }
-
-    console.log("Successfully sent both match emails");
 
     return new Response(
       JSON.stringify({ success: true }),
