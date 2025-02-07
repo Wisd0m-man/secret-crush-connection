@@ -28,7 +28,8 @@ export const sendMatchEmail = async (person1: MatchFormData, person2: CrushRow) 
 
     if (response.error) {
       console.error('Error sending match email:', response.error);
-      throw new Error(response.error.message);
+      console.error('Error details:', response.data);
+      throw new Error(`Failed to send match email: ${response.error.message}`);
     }
     
     console.log('Match email sent successfully:', response);
