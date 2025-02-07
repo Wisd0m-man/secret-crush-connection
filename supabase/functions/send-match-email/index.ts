@@ -21,11 +21,12 @@ interface EmailData {
 }
 
 async function sendEmailJS(payload: any) {
+  console.log("Sending email with payload:", payload);
   const response = await fetch(EMAILJS_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'origin': 'http://localhost',  // Add origin header
+      'origin': 'http://localhost',
     },
     body: JSON.stringify(payload),
   });
@@ -59,12 +60,13 @@ serve(async (req) => {
       service_id: EMAILJS_SERVICE_ID,
       template_id: EMAILJS_TEMPLATE_ID,
       user_id: EMAILJS_PUBLIC_KEY,
-      accessToken: EMAILJS_PUBLIC_KEY, // Add access token
+      accessToken: EMAILJS_PUBLIC_KEY,
       template_params: {
-        to_name: to_name1,
-        to_name2: to_name2,
         to_email: to_email1,
-        message,
+        to_name1: to_name1,
+        to_name2: to_name2,
+        message: message,
+        subject: "Secret Crush Match! 💘",
       },
     };
 
@@ -73,12 +75,13 @@ serve(async (req) => {
       service_id: EMAILJS_SERVICE_ID,
       template_id: EMAILJS_TEMPLATE_ID,
       user_id: EMAILJS_PUBLIC_KEY,
-      accessToken: EMAILJS_PUBLIC_KEY, // Add access token
+      accessToken: EMAILJS_PUBLIC_KEY,
       template_params: {
-        to_name: to_name2,
-        to_name2: to_name1,
         to_email: to_email2,
-        message,
+        to_name1: to_name2,
+        to_name2: to_name1,
+        message: message,
+        subject: "Secret Crush Match! 💘",
       },
     };
 
