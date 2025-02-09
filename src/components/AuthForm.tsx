@@ -33,6 +33,7 @@ const AuthForm = ({ mode }: AuthFormProps) => {
             description: "Passwords do not match",
             variant: "destructive",
           });
+          setIsLoading(false);
           return;
         }
         await createUserWithEmailAndPassword(auth, formData.email, formData.password);
@@ -50,9 +51,23 @@ const AuthForm = ({ mode }: AuthFormProps) => {
       navigate("/crush-form");
     } catch (error: any) {
       console.error("Auth error:", error);
+      
+      // Handle specific Firebase auth errors
+      let errorMessage = "Authentication failed. Please try again.";
+      
+      if (error.code === "auth/invalid-credential" || error.code === "auth/invalid-login-credentials") {
+        errorMessage = "Invalid email or password. Please check your credentials and try again.";
+      } else if (error.code === "auth/email-already-in-use") {
+        errorMessage = "This email is already registered. Please try logging in instead.";
+      } else if (error.code === "auth/weak-password") {
+        errorMessage = "Password should be at least 6 characters long.";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Please enter a valid email address.";
+      }
+
       toast({
-        title: "Authentication failed",
-        description: error.message,
+        title: "Authentication Error",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -94,6 +109,7 @@ const AuthForm = ({ mode }: AuthFormProps) => {
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
             placeholder="••••••••"
             required
+            minLength={6}
           />
         </div>
       </div>
@@ -113,6 +129,7 @@ const AuthForm = ({ mode }: AuthFormProps) => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-love-400"
               placeholder="••••••••"
               required
+              minLength={6}
             />
           </div>
         </div>
