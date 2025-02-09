@@ -11,7 +11,7 @@ type CrushInsert = Database['public']['Tables']['crushes']['Insert'];
 
 const CrushForm = () => {
   const { toast } = useToast();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<MatchFormData>({
     name: "",
@@ -24,15 +24,6 @@ const CrushForm = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (!isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please authenticate with Google before submitting",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!formData.name || !formData.email || !formData.usn || !formData.crushName || !formData.crushUsn) {
       toast({
         title: "Missing Information",
@@ -95,10 +86,7 @@ const CrushForm = () => {
           await sendMatchEmail(formData, matchData);
           await updateMatchStatus(formData.usn, formData.crushUsn);
           
-          toast({
-            title: "It's a Match! 💘",
-            description: "You and your crush like each other! Check your email for more details!",
-          });
+          navigate("/match-found", { state: { matchData } });
         } catch (error) {
           console.error("Error processing match:", error);
           toast({
@@ -108,10 +96,7 @@ const CrushForm = () => {
           });
         }
       } else {
-        toast({
-          title: "Crush Submitted! 💘",
-          description: "We'll let you know if it's a match!",
-        });
+        navigate("/waiting");
       }
       
       setFormData({
@@ -206,20 +191,14 @@ const CrushForm = () => {
           />
         </div>
 
-        {!isAuthenticated ? (
-          <div className="pt-4">
-            <GoogleAuth onAuthComplete={() => setIsAuthenticated(true)} />
-          </div>
-        ) : (
-          <button
-            type="submit"
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-love-500 text-white rounded-md hover:bg-love-600 transition-colors duration-200"
-          >
-            <Heart className="w-5 h-5" />
-            <span>Submit Secret Crush</span>
-            <Send className="w-5 h-5" />
-          </button>
-        )}
+        <button
+          type="submit"
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-love-500 text-white rounded-md hover:bg-love-600 transition-colors duration-200"
+        >
+          <Heart className="w-5 h-5" />
+          <span>Submit Secret Crush</span>
+          <Send className="w-5 h-5" />
+        </button>
       </div>
     </form>
   );
