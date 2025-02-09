@@ -62,6 +62,10 @@ export const checkForMatch = async (currentSubmission: MatchFormData) => {
     }
 
     console.log("Match found!", { currentSubmission, matchData });
+    
+    // Update match status for both entries
+    await updateMatchStatus(currentSubmission.usn, currentSubmission.crushUsn);
+    
     return matchData;
   } catch (error) {
     console.error("Error in checkForMatch:", error);
