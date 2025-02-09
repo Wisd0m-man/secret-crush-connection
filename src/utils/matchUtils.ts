@@ -13,33 +13,6 @@ export interface MatchFormData {
 type CrushRow = Database['public']['Tables']['crushes']['Row'];
 type CrushUpdate = Database['public']['Tables']['crushes']['Update'];
 
-export const sendMatchEmail = async (person1: MatchFormData, person2: CrushRow) => {
-  try {
-    console.log("Sending match email to:", person1.email, "and", person2.email);
-    const response = await supabase.functions.invoke('send-match-email', {
-      body: {
-        to_email1: person1.email,
-        to_name1: person1.name,
-        to_email2: person2.email,
-        to_name2: person2.name,
-        message: "Congratulations! You have a mutual crush match! 💘"
-      }
-    });
-
-    if (response.error) {
-      console.error('Error sending match email:', response.error);
-      console.error('Error details:', response.data);
-      throw new Error(`Failed to send match email: ${response.error.message}`);
-    }
-    
-    console.log('Match email sent successfully:', response);
-    return response;
-  } catch (error) {
-    console.error('Error in sendMatchEmail:', error);
-    throw error;
-  }
-};
-
 export const updateMatchStatus = async (usn1: string, usn2: string) => {
   try {
     const updates = [

@@ -1,8 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, UserPlus, LogIn } from "lucide-react";
@@ -36,13 +35,23 @@ const AuthForm = ({ mode }: AuthFormProps) => {
           setIsLoading(false);
           return;
         }
-        await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+        const { error } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+        });
+        if (error) throw error;
+        
         toast({
           title: "Account created! 🎉",
           description: "Welcome to Secret Crush Matcher!",
         });
       } else {
-        await signInWithEmailAndPassword(auth, formData.email, formData.password);
+        const { error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+        if (error) throw error;
+
         toast({
           title: "Welcome back! 👋",
           description: "Successfully logged in",
@@ -52,16 +61,15 @@ const AuthForm = ({ mode }: AuthFormProps) => {
     } catch (error: any) {
       console.error("Auth error:", error);
       
-      // Handle specific Firebase auth errors
       let errorMessage = "Authentication failed. Please try again.";
       
-      if (error.code === "auth/invalid-credential" || error.code === "auth/invalid-login-credentials") {
+      if (error.message.includes("Invalid login credentials")) {
         errorMessage = "Invalid email or password. Please check your credentials and try again.";
-      } else if (error.code === "auth/email-already-in-use") {
+      } else if (error.message.includes("already registered")) {
         errorMessage = "This email is already registered. Please try logging in instead.";
-      } else if (error.code === "auth/weak-password") {
+      } else if (error.message.includes("password")) {
         errorMessage = "Password should be at least 6 characters long.";
-      } else if (error.code === "auth/invalid-email") {
+      } else if (error.message.includes("valid email")) {
         errorMessage = "Please enter a valid email address.";
       }
 

@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { validateEmail, validateUSN } from "@/utils/validationUtils";
-import { checkForMatch, sendMatchEmail, updateMatchStatus, type MatchFormData } from "@/utils/matchUtils";
+import { checkForMatch, updateMatchStatus, type MatchFormData } from "@/utils/matchUtils";
 
 type CrushInsert = Database['public']['Tables']['crushes']['Insert'];
 
@@ -55,6 +55,22 @@ const CrushForm = () => {
     setIsSubmitting(true);
 
     try {
+      const { data: existingSubmission } = await supabase
+        .from('crushes')
+        .select('*')
+        .eq('usn', formData.usn)
+        .single();
+
+      if (existingSubmission) {
+        toast({
+          title: "Already Submitted",
+          description: "You have already submitted your crush. Please wait for results.",
+          variant: "destructive",
+        });
+        navigate("/waiting");
+        return;
+      }
+
       const crushData: CrushInsert = {
         name: formData.name,
         email: formData.email,
@@ -83,18 +99,8 @@ const CrushForm = () => {
       const matchData = await checkForMatch(formData);
       
       if (matchData) {
-        try {
-          await sendMatchEmail(formData, matchData);
-          await updateMatchStatus(formData.usn, formData.crushUsn);
-          navigate("/match-found", { state: { matchData } });
-        } catch (error) {
-          console.error("Error processing match:", error);
-          toast({
-            title: "Match Found!",
-            description: "A match was found but we couldn't send the notification. Please try again later.",
-            variant: "destructive",
-          });
-        }
+        await updateMatchStatus(formData.usn, formData.crushUsn);
+        navigate("/match-found", { state: { matchData } });
       } else {
         navigate("/waiting");
       }
