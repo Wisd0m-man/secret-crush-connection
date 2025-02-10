@@ -35,27 +35,16 @@ const AuthForm = ({ mode }: AuthFormProps) => {
           setIsLoading(false);
           return;
         }
-        
-        // Sign up with email confirmation disabled
+
+        // Sign up the user
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/crush-form`,
-          },
         });
 
         if (signUpError) throw signUpError;
 
         if (signUpData?.user) {
-          // Set session immediately after signup
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token: signUpData.session?.access_token || '',
-            refresh_token: signUpData.session?.refresh_token || '',
-          });
-
-          if (sessionError) throw sessionError;
-
           toast({
             title: "Account created! 🎉",
             description: "Welcome to Secret Crush Matcher!",
@@ -186,4 +175,3 @@ const AuthForm = ({ mode }: AuthFormProps) => {
 };
 
 export default AuthForm;
-
