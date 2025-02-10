@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,20 +35,30 @@ const AuthForm = ({ mode }: AuthFormProps) => {
           return;
         }
 
-        // Sign up the user
+        // Sign up the user with auto-confirm enabled
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
+          options: {
+            data: {
+              email_confirmed: true
+            }
+          }
         });
 
         if (signUpError) throw signUpError;
 
         if (signUpData?.user) {
-          toast({
-            title: "Account created! 🎉",
-            description: "Welcome to Secret Crush Matcher!",
-          });
-          navigate("/crush-form");
+          // Wait for session to be established
+          const { data: session } = await supabase.auth.getSession();
+          
+          if (session) {
+            toast({
+              title: "Account created! 🎉",
+              description: "Welcome to Secret Crush Matcher!",
+            });
+            navigate("/crush-form");
+          }
         }
       } else {
         // Login flow
