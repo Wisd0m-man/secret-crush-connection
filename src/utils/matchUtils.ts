@@ -37,6 +37,30 @@ export const updateMatchStatus = async (usn1: string, usn2: string) => {
   }
 };
 
+const sendMatchEmail = async (toEmail: string, userName: string, crushName: string) => {
+  try {
+    console.log('Attempting to send match email to:', toEmail);
+    const response = await supabase.functions.invoke('send-match-email', {
+      body: {
+        userEmail: toEmail,
+        userName: userName,
+        crushName: crushName
+      }
+    });
+
+    if (response.error) {
+      console.error('Error response from send-match-email function:', response.error);
+      throw response.error;
+    }
+
+    console.log('Match email sent successfully to:', toEmail);
+    return response.data;
+  } catch (error) {
+    console.error('Error sending match email:', error);
+    throw error;
+  }
+};
+
 export const checkForMatch = async (currentSubmission: MatchFormData) => {
   try {
     console.log("Checking for match with:", currentSubmission);
@@ -48,7 +72,6 @@ export const checkForMatch = async (currentSubmission: MatchFormData) => {
       .eq('usn', currentSubmission.crushUsn)
       .eq('crush_usn', currentSubmission.usn)
       .eq('status', 'pending')
-      .limit(1)
       .maybeSingle();
 
     if (matchError) {
@@ -63,6 +86,19 @@ export const checkForMatch = async (currentSubmission: MatchFormData) => {
 
     console.log("Match found!", { currentSubmission, matchData });
     
+    try {
+      // Send emails to both users
+      console.log("Sending match emails...");
+      await Promise.all([
+        sendMatchEmail(currentSubmission.email, currentSubmission.name, matchData.name),
+        sendMatchEmail(matchData.email, matchData.name, currentSubmission.name)
+      ]);
+      console.log("Match emails sent successfully");
+    } catch (emailError) {
+      console.error("Error sending match emails:", emailError);
+      // Continue with match process even if email sending fails
+    }
+
     // Update match status for both entries
     await updateMatchStatus(currentSubmission.usn, currentSubmission.crushUsn);
     
